@@ -1,13 +1,10 @@
-"""
-Agent Orchestrator - Manages and coordinates AI agents
-"""
 import asyncio
 from typing import Optional, Dict, Any, AsyncGenerator
 from enum import Enum
 
-from ..chat_agent import ChatAgent
-from ..record_agent import RecordAgent
-from ..tools.postgres_tools import PostgresConfig, init_postgres_toolkit
+from ..adk_chat_agent import AdkChatAgent
+from ..adk_record_agent import AdkRecordAgent
+from ..adk_tools import PostgresConfig, init_postgres_toolkit
 from .streaming_service import StreamingService, MessageType
 
 
@@ -17,52 +14,50 @@ class AgentType(str, Enum):
     RECORD = "record"
 
 
-class AgentOrchestrator:
+class AdkAgentOrchestrator:
     """
-    Orchestrates multiple AI agents and manages their lifecycle
+    Orchestrates multiple AI agents (ADK-based) and manages their lifecycle
     Routes requests to appropriate agents and handles streaming responses
     """
 
     def __init__(
         self,
-        anthropic_api_key: str,
+        google_api_key: str, # Changed from anthropic_api_key
         postgres_config: PostgresConfig,
         redis_url: str = "redis://localhost:6379",
         streaming_service: Optional[StreamingService] = None
     ):
-        self.anthropic_api_key = anthropic_api_key
+        self.google_api_key = google_api_key
         self.postgres_config = postgres_config
         self.redis_url = redis_url
         self.streaming_service = streaming_service
 
-        # Initialize PostgreSQL toolkit
+        # Initialize PostgreSQL toolkit (using adk_tools)
         init_postgres_toolkit(postgres_config)
 
         # Agent instances
-        self.chat_agent: Optional[ChatAgent] = None
-        self.record_agent: Optional[RecordAgent] = None
+        self.chat_agent: Optional[AdkChatAgent] = None
+        self.record_agent: Optional[AdkRecordAgent] = None
 
         # Agent initialization lock
         self._init_lock = asyncio.Lock()
 
-    async def _ensure_chat_agent(self) -> ChatAgent:
+    async def _ensure_chat_agent(self) -> AdkChatAgent:
         """Lazy initialization of chat agent"""
         if self.chat_agent is None:
             async with self._init_lock:
                 if self.chat_agent is None:
-                    self.chat_agent = ChatAgent(
-                        api_key=self.anthropic_api_key,
+                    self.chat_agent = AdkChatAgent(
                         redis_url=self.redis_url
                     )
         return self.chat_agent
 
-    async def _ensure_record_agent(self) -> RecordAgent:
+    async def _ensure_record_agent(self) -> AdkRecordAgent:
         """Lazy initialization of record agent"""
         if self.record_agent is None:
             async with self._init_lock:
                 if self.record_agent is None:
-                    self.record_agent = RecordAgent(
-                        api_key=self.anthropic_api_key,
+                    self.record_agent = AdkRecordAgent(
                         temperature=0.1
                     )
         return self.record_agent
@@ -75,20 +70,10 @@ class AgentOrchestrator:
         stream: bool = True
     ) -> AsyncGenerator[str, None]:
         """
-        Process a chat message through the ChatAgent
-
-        Args:
-            message: User's message
-            session_id: Session identifier
-            patient_id: Optional patient ID for context
-            stream: Whether to stream the response
-
-        Yields:
-            Response chunks
+        Process a chat message through the AdkChatAgent
         """
         agent = await self._ensure_chat_agent()
 
-        # Send typing indicator if streaming service available
         if self.streaming_service and stream:
             await self.streaming_service.send_typing(session_id, True)
             await self.streaming_service.send_stream_start(session_id, AgentType.CHAT)
@@ -104,7 +89,6 @@ class AgentOrchestrator:
                     await self.streaming_service.send_stream_chunk(session_id, chunk)
                 yield chunk
 
-            # Signal end of stream
             if self.streaming_service and stream:
                 await self.streaming_service.send_stream_end(session_id)
                 await self.streaming_service.send_typing(session_id, False)
@@ -122,19 +106,10 @@ class AgentOrchestrator:
         stream: bool = True
     ) -> AsyncGenerator[str, None]:
         """
-        Get patient record summary through RecordAgent
-
-        Args:
-            patient_id: Patient's unique identifier
-            session_id: Session identifier
-            stream: Whether to stream the response
-
-        Yields:
-            Summary chunks
+        Get patient record summary through AdkRecordAgent
         """
         agent = await self._ensure_record_agent()
 
-        # Send typing indicator if streaming service available
         if self.streaming_service and stream:
             await self.streaming_service.send_typing(session_id, True)
             await self.streaming_service.send_stream_start(session_id, AgentType.RECORD)
@@ -148,7 +123,6 @@ class AgentOrchestrator:
                     await self.streaming_service.send_stream_chunk(session_id, chunk)
                 yield chunk
 
-            # Signal end of stream
             if self.streaming_service and stream:
                 await self.streaming_service.send_stream_end(session_id)
                 await self.streaming_service.send_typing(session_id, False)
@@ -168,17 +142,7 @@ class AgentOrchestrator:
         stream: bool = True
     ) -> AsyncGenerator[str, None]:
         """
-        Analyze patient vitals through RecordAgent
-
-        Args:
-            patient_id: Patient's unique identifier
-            session_id: Session identifier
-            vital_type: Optional specific vital type
-            days: Number of days to analyze
-            stream: Whether to stream the response
-
-        Yields:
-            Analysis chunks
+        Analyze patient vitals through AdkRecordAgent
         """
         agent = await self._ensure_record_agent()
 
@@ -214,15 +178,7 @@ class AgentOrchestrator:
         stream: bool = True
     ) -> AsyncGenerator[str, None]:
         """
-        Summarize patient prescriptions through RecordAgent
-
-        Args:
-            patient_id: Patient's unique identifier
-            session_id: Session identifier
-            stream: Whether to stream the response
-
-        Yields:
-            Summary chunks
+        Summarize patient prescriptions through AdkRecordAgent
         """
         agent = await self._ensure_record_agent()
 
@@ -258,19 +214,9 @@ class AgentOrchestrator:
     ) -> AsyncGenerator[str, None]:
         """
         Intelligent query routing - determines which agent to use based on query
-
-        Args:
-            query: User's query
-            session_id: Session identifier
-            patient_id: Optional patient ID
-            stream: Whether to stream the response
-
-        Yields:
-            Response chunks
         """
         query_lower = query.lower()
 
-        # Simple keyword-based routing (can be enhanced with ML)
         record_keywords = [
             'record', 'medical history', 'health records', 'vitals',
             'prescription', 'medication', 'report', 'summary',
@@ -280,7 +226,6 @@ class AgentOrchestrator:
         is_record_query = any(keyword in query_lower for keyword in record_keywords)
 
         if is_record_query and patient_id:
-            # Check for specific requests
             if 'vital' in query_lower or 'blood pressure' in query_lower or 'heart rate' in query_lower:
                 async for chunk in self.analyze_vitals(patient_id, session_id, stream=stream):
                     yield chunk
@@ -291,11 +236,9 @@ class AgentOrchestrator:
                 async for chunk in self.get_patient_summary(patient_id, session_id, stream=stream):
                     yield chunk
             else:
-                # Default to chat agent for record-related conversational queries
                 async for chunk in self.process_chat_message(query, session_id, patient_id, stream):
                     yield chunk
         else:
-            # Use chat agent for general queries
             async for chunk in self.process_chat_message(query, session_id, patient_id, stream):
                 yield chunk
 
@@ -315,25 +258,25 @@ class AgentOrchestrator:
             await self.chat_agent.close()
 
         # Close PostgreSQL toolkit
-        from ..tools.postgres_tools import get_postgres_toolkit
+        from ..adk_tools import get_postgres_toolkit
         toolkit = get_postgres_toolkit()
         await toolkit.close()
 
 
 # Global orchestrator instance
-_orchestrator: Optional[AgentOrchestrator] = None
+_orchestrator: Optional[AdkAgentOrchestrator] = None
 
 
 def init_orchestrator(
-    anthropic_api_key: str,
+    google_api_key: str, # Changed from anthropic_api_key
     postgres_config: PostgresConfig,
     redis_url: str = "redis://localhost:6379",
     streaming_service: Optional[StreamingService] = None
-) -> AgentOrchestrator:
+) -> AdkAgentOrchestrator:
     """Initialize the global agent orchestrator"""
     global _orchestrator
-    _orchestrator = AgentOrchestrator(
-        anthropic_api_key=anthropic_api_key,
+    _orchestrator = AdkAgentOrchestrator(
+        google_api_key=google_api_key,
         postgres_config=postgres_config,
         redis_url=redis_url,
         streaming_service=streaming_service
@@ -341,9 +284,9 @@ def init_orchestrator(
     return _orchestrator
 
 
-def get_orchestrator() -> AgentOrchestrator:
+def get_orchestrator() -> AdkAgentOrchestrator:
     """Get the global agent orchestrator instance"""
     global _orchestrator
     if _orchestrator is None:
-        raise RuntimeError("AgentOrchestrator not initialized. Call init_orchestrator first.")
+        raise RuntimeError("AdkAgentOrchestrator not initialized. Call init_orchestrator first.")
     return _orchestrator

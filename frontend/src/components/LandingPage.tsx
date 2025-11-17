@@ -54,12 +54,13 @@ export const LandingPage: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <div className="bg-white">
+      <div className="bg-white h-screen">
         <div className="container mx-auto px-6 py-16">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+          <div className="flex justify-center gap-8 h-dvh">
             {/* Hero Content */}
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
+            <div className="flex flex-col justify-center gap-8 max-w-lg">
+              <div className="inline-flex items-center gap-2 bg-blue-100
+               text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
                 <Activity className="h-4 w-4" />
                 <span>AI-Powered Healthcare Platform</span>
               </div>

@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional
 import os
 import uuid
-from anthropic import AsyncAnthropic
+from google import genai
+from google.genai import types
 
 router = APIRouter(tags=["chat"])
 
@@ -32,16 +33,15 @@ class GuestChatResponse(BaseModel):
 
 class GuestChatAgent:
     """
-    Simple chat agent for guest users without database dependencies
+    Simple chat agent for guest users without database dependencies using Google ADK
     """
 
     def __init__(self, api_key: str):
-        self.client = AsyncAnthropic(api_key=api_key)
-        self.model = "claude-3-5-sonnet-20241022"
-        self.temperature = 0.7
-        self.max_tokens = 2048
+        # Initialize Google GenAI client
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = "gemini-2.0-flash-exp"
 
-        self.system_prompt = """You are CareAgent's helpful AI assistant. You help visitors learn about the CareAgent platform.
+        self.system_instruction = """You are CareAgent's helpful AI assistant. You help visitors learn about the CareAgent platform.
 
 **About CareAgent:**
 - CareAgent is a comprehensive healthcare management platform
@@ -72,7 +72,7 @@ If asked about pricing, services, doctors, appointments, or features - provide h
 
     async def chat(self, message: str, history: List[Dict[str, str]]) -> str:
         """
-        Process a guest chat message
+        Process a guest chat message using Google ADK
 
         Args:
             message: User's message
@@ -81,38 +81,37 @@ If asked about pricing, services, doctors, appointments, or features - provide h
         Returns:
             Assistant's response
         """
-        # Build messages
-        messages = []
+        try:
+            # Build contents for Google ADK format
+            contents = []
 
-        # Add history (limit to last 10 messages to control costs)
-        for msg in history[-10:]:
-            messages.append({
-                "role": msg["role"],
-                "content": msg["content"]
+            # Add history (limit to last 10 messages to control costs)
+            for msg in history[-10:]:
+                role = "user" if msg["role"] == "user" else "model"
+                contents.append({
+                    "role": role,
+                    "parts": [{"text": msg["content"]}]
+                })
+
+            # Add current message
+            contents.append({
+                "role": "user",
+                "parts": [{"text": message}]
             })
 
-        # Add current message
-        messages.append({
-            "role": "user",
-            "content": message
-        })
-
-        try:
-            # Make API call
-            response = await self.client.messages.create(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                system=self.system_prompt,
-                messages=messages,
+            # Generate response using Google ADK
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config={
+                    "temperature": 0.7,
+                    "max_output_tokens": 2048,
+                    "system_instruction": self.system_instruction,
+                }
             )
 
             # Extract text from response
-            response_text = ""
-            for block in response.content:
-                if hasattr(block, 'text'):
-                    response_text += block.text
-
+            response_text = response.text if hasattr(response, 'text') else ""
             return response_text.strip()
 
         except Exception as e:
@@ -128,11 +127,11 @@ def get_guest_agent() -> GuestChatAgent:
     """Get or create guest chat agent"""
     global _guest_agent
     if _guest_agent is None:
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise HTTPException(
                 status_code=500,
-                detail="ANTHROPIC_API_KEY not configured"
+                detail="GOOGLE_API_KEY not configured"
             )
         _guest_agent = GuestChatAgent(api_key=api_key)
     return _guest_agent
@@ -176,17 +175,17 @@ async def guest_chat(
 async def chat_health():
     """Health check for chat service"""
     try:
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key:
             return {
                 "status": "unhealthy",
-                "error": "ANTHROPIC_API_KEY not configured"
+                "error": "GOOGLE_API_KEY not configured"
             }
 
         return {
             "status": "healthy",
             "service": "Guest Chat",
-            "model": "claude-3-5-sonnet-20241022"
+            "model": "gemini-2.0-flash-exp"
         }
     except Exception as e:
         return {

@@ -13,10 +13,13 @@ dependencies = [
     "python-dotenv==1.0.1",
     "dotenv>=0.9.9",
     # AI Agent dependencies
-    "anthropic>=0.39.0",
+    "google-cloud-aiplatform>=1.59.0",
+    "litellm>=1.42.1",
     "pyyaml>=6.0.1",
     "websockets>=12.0",
     "redis>=5.0.0",
+    "google-adk>=0.0.1",
+    "google-genai>=1.0.0",
 ]
 
 [project.optional-dependencies]

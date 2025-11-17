@@ -12,8 +12,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 from agents.services.streaming_service import get_streaming_service, StreamingService, MessageType
-from agents.services.agent_orchestrator import init_orchestrator, get_orchestrator, AgentOrchestrator
-from agents.tools.postgres_tools import PostgresConfig
+from agents.services.adk_agent_orchestrator import init_orchestrator, get_orchestrator, AdkAgentOrchestrator
+from agents.adk_tools import PostgresConfig
 
 # Load environment variables
 load_dotenv()
@@ -28,25 +28,28 @@ async def lifespan(app: FastAPI):
 
     # Initialize PostgreSQL configuration
     postgres_config = PostgresConfig(
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=int(os.getenv("POSTGRES_PORT", "5432")),
-        database=os.getenv("POSTGRES_DB", "careagents"),
-        user=os.getenv("POSTGRES_USER", "postgres"),
-        password=os.getenv("POSTGRES_PASSWORD", "postgres"),
+        host=os.getenv("POSTGRES_HOST", os.getenv("DB_HOST", "localhost")),
+        port=int(os.getenv("POSTGRES_PORT", os.getenv("DB_PORT", "5432"))),
+        database=os.getenv("POSTGRES_DB", os.getenv("DB_NAME", "careagents")),
+        user=os.getenv("POSTGRES_USER", os.getenv("DB_USER", "postgres")),
+        password=os.getenv("POSTGRES_PASSWORD", os.getenv("DB_PASSWORD", "postgres")),
+        ssl=os.getenv("POSTGRES_SSL", os.getenv("DB_SSL")),
+        timeout=float(os.getenv("POSTGRES_TIMEOUT", os.getenv("DB_TIMEOUT", "60"))),
+        command_timeout=float(os.getenv("POSTGRES_COMMAND_TIMEOUT", os.getenv("DB_COMMAND_TIMEOUT", "60"))),
     )
 
     # Get streaming service
     streaming_service = get_streaming_service()
 
     # Initialize agent orchestrator
-    anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-    if not anthropic_api_key:
-        raise ValueError("ANTHROPIC_API_KEY environment variable is required")
+    google_api_key = os.getenv("GOOGLE_API_KEY")
+    if not google_api_key:
+        raise ValueError("GOOGLE_API_KEY environment variable is required")
 
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 
     orchestrator = init_orchestrator(
-        anthropic_api_key=anthropic_api_key,
+        google_api_key=google_api_key,
         postgres_config=postgres_config,
         redis_url=redis_url,
         streaming_service=streaming_service
@@ -102,7 +105,7 @@ class ChatResponse(BaseModel):
 
 
 # Dependency to get orchestrator
-def get_agent_orchestrator() -> AgentOrchestrator:
+def get_agent_orchestrator() -> AdkAgentOrchestrator:
     return get_orchestrator()
 
 
