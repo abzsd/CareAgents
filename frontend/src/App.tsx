@@ -1,10 +1,8 @@
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { LandingPage } from "./components/LandingPage";
-import { PatientDashboard } from "./components/PatientDashboard";
-import { DoctorDashboard } from "./components/DoctorDashboard";
-import { DoctorOnboarding } from "./components/DoctorOnboarding";
-import { PatientOnboarding } from "./components/PatientOnboarding";
-import { RoleSelection } from "./components/RoleSelection";
+import { EnhancedDoctorDashboard } from "./components/EnhancedDoctorDashboard";
+import { UnifiedOnboarding } from "./components/UnifiedOnboarding";
+import { EnhancedPatientDashboard } from "./components/EnhancedPatientDashboard";
 import { Button } from "./components/ui/button";
 import { Loader2 } from "lucide-react";
 
@@ -39,18 +37,9 @@ function AppContent() {
     );
   }
 
-  // If user hasn't selected a role yet
-  if (!userProfile.role || (userProfile.role !== 'doctor' && userProfile.role !== 'patient')) {
-    return <RoleSelection />;
-  }
-
-  // If user is not onboarded yet
+  // If user is not onboarded yet, use unified onboarding
   if (!userProfile.is_onboarded) {
-    if (userProfile.role === 'doctor') {
-      return <DoctorOnboarding />;
-    } else {
-      return <PatientOnboarding />;
-    }
+    return <UnifiedOnboarding />;
   }
 
   // User is fully onboarded - show appropriate dashboard
@@ -62,9 +51,9 @@ function AppContent() {
         </Button>
       </div>
       {userProfile.role === 'doctor' ? (
-        <DoctorDashboard />
+        <EnhancedDoctorDashboard />
       ) : (
-        <PatientDashboard />
+        <EnhancedPatientDashboard />
       )}
     </div>
   );

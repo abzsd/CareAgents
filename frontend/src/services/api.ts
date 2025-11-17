@@ -192,5 +192,43 @@ export const patientApi = {
   }
 };
 
+// Guest Chat API functions (no authentication required)
+export const guestChatApi = {
+  // Send a guest chat message
+  sendMessage: async (message: string, history: Array<{ role: string; content: string }>) => {
+    const url = 'http://localhost:8000/api/chat/guest';
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        history,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to send message: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+
+  // Check guest chat health
+  checkHealth: async () => {
+    const url = 'http://localhost:8000/api/chat/health';
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`Failed to check chat health: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+};
+
 // Export the main API request function for custom endpoints
 export default apiRequest;

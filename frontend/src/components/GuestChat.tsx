@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/button';
-import { MessageSquare, X, Send, Loader2, Bot, User } from 'lucide-react';
+import { MessageSquare, X, Send, Loader2, Bot, User, RotateCcw, Mail } from 'lucide-react';
+import { sessionManager, ChatMessage } from '../utils/sessionManager';
+import { guestChatApi } from '../services/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Message {
   id: string;
@@ -9,20 +14,55 @@ interface Message {
   timestamp: Date;
 }
 
+const WELCOME_MESSAGE = "Hi! I'm your CareAgent AI assistant. How can I help you today? You can ask me about our services, features, doctors, appointments, or get general health information.";
+
+// Helper function to parse message content and extract login prompt
+const parseMessageContent = (content: string): { cleanContent: string; hasLoginPrompt: boolean } => {
+  const loginPromptRegex = /<login_signup_prompt>login<\/login_signup_prompt>/g;
+  const hasLoginPrompt = loginPromptRegex.test(content);
+  const cleanContent = content.replace(loginPromptRegex, '').trim();
+  return { cleanContent, hasLoginPrompt };
+};
+
 export const GuestChat: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Hi! I'm your CareAgent AI assistant. How can I help you today? You can ask me about our services, book appointments, or get general health information.",
-      timestamp: new Date(),
-    },
-  ]);
+  const { googleSignIn } = useAuth();
+  const [isOpen, setIsOpen] = useState(true);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize session and load history when component mounts
+  useEffect(() => {
+    const sid = sessionManager.getSessionId();
+    setSessionId(sid);
+
+    // Load existing chat history or show welcome message
+    const history = sessionManager.getHistory();
+    if (history.length > 0) {
+      // Convert stored history to Message format
+      const loadedMessages: Message[] = history.map((msg, index) => ({
+        id: `loaded_${index}`,
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(),
+      }));
+      setMessages(loadedMessages);
+    } else {
+      // Show welcome message for new session
+      setMessages([
+        {
+          id: '1',
+          role: 'assistant',
+          content: WELCOME_MESSAGE,
+          timestamp: new Date(),
+        },
+      ]);
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,31 +88,22 @@ export const GuestChat: React.FC = () => {
       timestamp: new Date(),
     };
 
+    // Add user message to UI
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/chat/guest', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          history: messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-      });
+      // Prepare chat history for API (excluding welcome message if it's the first message)
+      const chatHistory = messages
+        .filter((m) => m.id !== '1' || m.role !== 'assistant') // Filter out initial welcome message
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
 
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const data = await response.json();
-
+      // Call the guest chat API
+      const data = await guestChatApi.sendMessage(userMessage.content, chatHistory);
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -80,7 +111,19 @@ export const GuestChat: React.FC = () => {
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      // Update UI with assistant response
+      setMessages((prev) => {
+        const newMessages = [...prev, assistantMessage];
+
+        // Save the entire conversation history to session storage
+        const historyToSave: ChatMessage[] = newMessages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+        sessionManager.saveHistory(historyToSave);
+
+        return newMessages;
+      });
     } catch (error) {
       console.error('Chat error:', error);
 
@@ -120,6 +163,33 @@ export const GuestChat: React.FC = () => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleClearChat = () => {
+    if (window.confirm('Are you sure you want to clear this chat? This will start a new session.')) {
+      sessionManager.clearSession();
+      const newSessionId = sessionManager.getSessionId();
+      setSessionId(newSessionId);
+      setMessages([
+        {
+          id: '1',
+          role: 'assistant',
+          content: WELCOME_MESSAGE,
+          timestamp: new Date(),
+        },
+      ]);
+    }
+  };
+
+  const handleLogin = async () => {
+    setIsSigningIn(true);
+    try {
+      await googleSignIn();
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -165,64 +235,167 @@ export const GuestChat: React.FC = () => {
                   </div>
                   <div>
                     <div className="text-lg font-medium">CareAgent AI</div>
-                    <p className="text-xs text-blue-100">Always here to help</p>
+                    <p className="text-xs text-blue-100">Session: {sessionId.substring(0, 15)}...</p>
                   </div>
                 </div>
-                <Button
-                  onClick={() => setIsOpen(false)}
-                  className="text-white h-8 w-8 p-0 bg-transparent hover:bg-white hover:bg-opacity-20"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleClearChat}
+                    className="text-white h-8 w-8 p-0 bg-transparent hover:bg-white hover:bg-opacity-20"
+                    title="Clear chat and start new session"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    onClick={() => setIsOpen(false)}
+                    className="text-white h-8 w-8 p-0 bg-transparent hover:bg-white hover:bg-opacity-20"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
             </div>
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
               <div className="space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    <div className={`flex items-start gap-2 ${message.role === 'user' ? 'flex-row-reverse' : ''}`} style={{ maxWidth: '80%' }}>
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          message.role === 'user'
-                            ? 'bg-blue-500'
-                            : 'bg-slate-200'
-                        }`}
-                      >
-                        {message.role === 'user' ? (
-                          <User className="h-4 w-4 text-white" />
-                        ) : (
-                          <Bot className="h-4 w-4 text-slate-700" />
-                        )}
-                      </div>
-                      <div
-                        className={`rounded-lg px-4 py-2 ${
-                          message.role === 'user'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white text-slate-800 border border-slate-200'
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <p
-                          className={`text-xs mt-1 ${
-                            message.role === 'user' ? 'text-blue-100' : 'text-slate-400'
+                {messages.map((message) => {
+                  const { cleanContent, hasLoginPrompt } = parseMessageContent(message.content);
+
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex ${
+                        message.role === 'user' ? 'justify-end' : 'justify-start'
+                      }`}
+                    >
+                      <div className={`flex items-start gap-2 ${message.role === 'user' ? 'flex-row-reverse' : ''}`} style={{ maxWidth: '80%' }}>
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            message.role === 'user'
+                              ? 'bg-blue-500'
+                              : 'bg-slate-200'
                           }`}
                         >
-                          {message.timestamp.toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
+                          {message.role === 'user' ? (
+                            <User className="h-4 w-4 text-white" />
+                          ) : (
+                            <Bot className="h-4 w-4 text-slate-700" />
+                          )}
+                        </div>
+                        <div>
+                          <div
+                            className={`rounded-lg px-4 py-2 ${
+                              message.role === 'user'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white text-slate-800 border border-slate-200'
+                            }`}
+                          >
+                            <div className={`text-sm ${message.role === 'user' ? 'markdown-user' : 'markdown-assistant'}`}>
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                  // Customize rendering for different elements
+                                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                  ul: ({ children }) => <ul className="list-disc ml-4 mb-2 space-y-1">{children}</ul>,
+                                  ol: ({ children }) => <ol className="list-decimal ml-4 mb-2 space-y-1">{children}</ol>,
+                                  li: ({ children }) => <li className="ml-1">{children}</li>,
+                                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                  em: ({ children }) => <em className="italic">{children}</em>,
+                                  code: ({ node, inline, children, ...props }: any) =>
+                                    inline ? (
+                                      <code
+                                        className={`px-1.5 py-0.5 rounded text-xs font-mono ${
+                                          message.role === 'user'
+                                            ? 'bg-blue-700 text-blue-100'
+                                            : 'bg-slate-100 text-slate-800'
+                                        }`}
+                                        {...props}
+                                      >
+                                        {children}
+                                      </code>
+                                    ) : (
+                                      <code
+                                        className={`block px-3 py-2 rounded text-xs font-mono my-2 ${
+                                          message.role === 'user'
+                                            ? 'bg-blue-700 text-blue-100'
+                                            : 'bg-slate-100 text-slate-800'
+                                        }`}
+                                        {...props}
+                                      >
+                                        {children}
+                                      </code>
+                                    ),
+                                  a: ({ children, href }) => (
+                                    <a
+                                      href={href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`underline ${
+                                        message.role === 'user' ? 'text-blue-100' : 'text-blue-600'
+                                      } hover:opacity-80`}
+                                    >
+                                      {children}
+                                    </a>
+                                  ),
+                                  h1: ({ children }) => <h1 className="text-lg font-bold mb-2">{children}</h1>,
+                                  h2: ({ children }) => <h2 className="text-base font-bold mb-2">{children}</h2>,
+                                  h3: ({ children }) => <h3 className="text-sm font-bold mb-1">{children}</h3>,
+                                  blockquote: ({ children }) => (
+                                    <blockquote
+                                      className={`border-l-4 pl-3 my-2 ${
+                                        message.role === 'user'
+                                          ? 'border-blue-300'
+                                          : 'border-slate-300'
+                                      }`}
+                                    >
+                                      {children}
+                                    </blockquote>
+                                  ),
+                                }}
+                              >
+                                {cleanContent}
+                              </ReactMarkdown>
+                            </div>
+                            <p
+                              className={`text-xs mt-1 ${
+                                message.role === 'user' ? 'text-blue-100' : 'text-slate-400'
+                              }`}
+                            >
+                              {message.timestamp.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+
+                          {/* Login Button - Only show for assistant messages with login prompt */}
+                          {message.role === 'assistant' && hasLoginPrompt && (
+                            <div className="mt-2">
+                              <Button
+                                onClick={handleLogin}
+                                disabled={isSigningIn}
+                                className="bg-blue-600 hover:bg-blue-700 text-white w-full"
+                              >
+                                {isSigningIn ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Signing in...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    Login with Google
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {isLoading && (
                   <div className="flex justify-start">
                     <div className="flex items-start gap-2">

@@ -68,6 +68,14 @@ class GuestChatAgent:
 - Focus on the platform's benefits and features
 - Be encouraging about signing up
 
+If User Asks any relavent to appointments,doctors,services,pricing or features, provide information about them and encourage signing up.
+ask them to login or sign up for full access.
+
+When You want to login or signup, say:
+<login_signup_prompt>login</login_signup_prompt>
+
+
+
 If asked about pricing, services, doctors, appointments, or features - provide helpful information and encourage them to sign up for full access."""
 
     async def chat(self, message: str, history: List[Dict[str, str]]) -> str:
