@@ -19,7 +19,7 @@ export const EnhancedDoctorDashboard = () => {
     return null;
   }
 
-  const doctorId = userProfile.user_id;
+  const doctorId = userProfile.doctor_id || userProfile.user_id;
 
   const stats = [
     { title: "Today's Appointments", value: '0', icon: Calendar, color: 'bg-blue-500' },

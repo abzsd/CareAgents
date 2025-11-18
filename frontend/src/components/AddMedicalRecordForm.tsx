@@ -119,8 +119,8 @@ export function AddMedicalRecordForm({
 
       const recordData = {
         patient_id: patientId,
-        doctor_id: userProfile?.user_id,
-        doctor_name: userProfile?.display_name || 'Unknown Doctor',
+        doctor_id: userProfile?.doctor_id || null,
+        doctor_name: userProfile?.display_name || `${userProfile?.first_name || ''} ${userProfile?.last_name || ''}`.trim() || 'Unknown Doctor',
         visit_date: visitDate,
         diagnosis,
         prescriptions: prescriptions.length > 0 ? prescriptions : undefined,

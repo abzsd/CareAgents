@@ -230,5 +230,62 @@ export const guestChatApi = {
   },
 };
 
+// Doctor API functions
+export const doctorApi = {
+  // Get doctor by user ID
+  getDoctorByUserId: async (userId: string) => {
+    const response = await apiRequest(`/doctors/user/${userId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch doctor: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  // Get doctor by ID
+  getDoctor: async (doctorId: string) => {
+    const response = await apiRequest(`/doctors/${doctorId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch doctor: ${response.statusText}`);
+    }
+    return response.json();
+  }
+};
+
+// Onboarding API functions
+export const onboardingApi = {
+  // Onboard a doctor
+  onboardDoctor: async (doctorData: any) => {
+    const response = await apiRequest('/onboarding/doctor', {
+      method: 'POST',
+      body: JSON.stringify(doctorData),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to onboard doctor: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  // Onboard a patient
+  onboardPatient: async (patientData: any) => {
+    const response = await apiRequest('/onboarding/patient', {
+      method: 'POST',
+      body: JSON.stringify(patientData),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to onboard patient: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  // Check onboarding status
+  checkOnboardingStatus: async (userId: string) => {
+    const response = await apiRequest(`/onboarding/status/${userId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to check onboarding status: ${response.statusText}`);
+    }
+    return response.json();
+  }
+};
+
 // Export the main API request function for custom endpoints
 export default apiRequest;

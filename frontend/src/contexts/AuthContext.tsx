@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { auth, googleProvider } from '../firebase/config';
-import { 
-  signInWithPopup, 
-  signOut, 
-  onAuthStateChanged, 
+import {
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
   User
 } from 'firebase/auth';
-import { userApi } from '../services/api';
+import { userApi, doctorApi } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        
+
         try {
           // Check if user exists in our database
           let userRecord;
@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 firebase_uid: firebaseUser.uid,
                 provider_id: firebaseUser.providerId || 'google.com'
               };
-              
+
               try {
                 userRecord = await userApi.createUser(userData);
               } catch (createError) {
@@ -71,7 +71,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               return;
             }
           }
-          
+
+          // If user is a doctor and onboarded, fetch doctor profile with doctor_id
+          if (userRecord && userRecord.role === 'doctor' && userRecord.is_onboarded) {
+            try {
+              const doctorProfile = await doctorApi.getDoctorByUserId(userRecord.user_id);
+              // Merge user record with doctor profile
+              userRecord = { ...userRecord, ...doctorProfile };
+            } catch (doctorError) {
+              console.error('Error fetching doctor profile:', doctorError);
+              // Continue with user record only
+            }
+          }
+
           setUserProfile(userRecord);
         } catch (error) {
           console.error('Error in auth state change:', error);
@@ -91,7 +103,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const result = await signInWithPopup(auth, googleProvider);
       setUser(result.user);
-      
+
       // Create or update user in our database
       try {
         let userRecord;
@@ -109,7 +121,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               firebase_uid: result.user.uid,
               provider_id: result.user.providerId || 'google.com'
             };
-            
+
             try {
               userRecord = await userApi.createUser(userData);
             } catch (createError) {
@@ -124,7 +136,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return;
           }
         }
-        
+
+        // If user is a doctor and onboarded, fetch doctor profile with doctor_id
+        if (userRecord && userRecord.role === 'doctor' && userRecord.is_onboarded) {
+          try {
+            const doctorProfile = await doctorApi.getDoctorByUserId(userRecord.user_id);
+            // Merge user record with doctor profile
+            userRecord = { ...userRecord, ...doctorProfile };
+          } catch (doctorError) {
+            console.error('Error fetching doctor profile:', doctorError);
+            // Continue with user record only
+          }
+        }
+
         setUserProfile(userRecord);
       } catch (error) {
         console.error('Error handling user profile:', error);

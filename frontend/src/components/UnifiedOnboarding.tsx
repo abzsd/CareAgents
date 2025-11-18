@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { userApi } from '../services/api';
+import { userApi, onboardingApi } from '../services/api';
 import { patientService } from '../services/patientService';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
@@ -125,15 +125,44 @@ export const UnifiedOnboarding: React.FC = () => {
           throw new Error('User profile not found');
         }
 
-        // Update user role to doctor and mark as onboarded
+        // Validate required fields
+        if (!formData.specialization) {
+          throw new Error('Please select a medical specialization');
+        }
+        if (!formData.licenseNumber) {
+          throw new Error('Please enter your medical license number');
+        }
+
+        // Prepare education data
+        const education = formData.qualifications
+          .filter(q => q.degree || q.institution || q.year)
+          .map(q => ({
+            degree: q.degree,
+            institution: q.institution,
+            year: q.year ? parseInt(q.year) : undefined
+          }));
+
+        // Create doctor record via onboarding API
+        const onboardingResult = await onboardingApi.onboardDoctor({
+          user_id: userProfile.user_id,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          specialization: formData.specialization,
+          license_number: formData.licenseNumber,
+          phone: formData.phone || undefined,
+          email: user?.email || undefined,
+          experience_years: formData.yearsOfExperience ? parseInt(formData.yearsOfExperience) : undefined,
+          education: education.length > 0 ? education : undefined
+        });
+
+        console.log('Doctor onboarding successful:', onboardingResult);
+
+        // Update user profile with display name
         const updatedUser = await userApi.updateUser(userProfile.user_id, {
-          role: 'doctor',
-          is_onboarded: true,
           display_name: `${formData.firstName} ${formData.lastName}`
         });
 
         setUserProfile(updatedUser);
-        handleOnboardingComplete();
 
       } catch (err: any) {
         console.error('Onboarding error:', err);
