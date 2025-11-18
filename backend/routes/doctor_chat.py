@@ -19,7 +19,7 @@ router = APIRouter(prefix="/doctor-chat", tags=["doctor-chat"])
 class ChatRequest(BaseModel):
     query: str
     patient_id: str
-    conversation_history: Optional[List[Dict[str, str]]] = None
+    conversation_history: Optional[List[Dict[str, Any]]] = None
 
 
 class SummaryRequest(BaseModel):
@@ -74,9 +74,12 @@ async def get_patient_data(
         page_size=100  # Get all history for context
     )
 
+    # Convert MedicalHistoryResponse objects to dictionaries
+    medical_history = [record.model_dump() for record in history_result["records"]]
+
     return {
         "patient_data": patient.model_dump(),
-        "medical_history": history_result["records"]
+        "medical_history": medical_history
     }
 
 

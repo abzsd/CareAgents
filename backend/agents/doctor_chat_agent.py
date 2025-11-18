@@ -5,6 +5,7 @@ Provides intelligent patient summaries and answers to doctor queries
 import os
 from typing import Dict, Any, List, Optional, AsyncGenerator
 import json
+import re
 from datetime import datetime
 
 from google import genai
@@ -98,7 +99,7 @@ MEDICAL HISTORY ({len(medical_history)} records)
         query: str,
         patient_data: Dict[str, Any],
         medical_history: List[Dict[str, Any]],
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, Any]]] = None
     ) -> str:
         """
         Process a doctor's query about a patient.
@@ -202,7 +203,7 @@ PATIENT DATA:
         query: str,
         patient_data: Dict[str, Any],
         medical_history: List[Dict[str, Any]],
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, Any]]] = None
     ) -> AsyncGenerator[str, None]:
         """
         Process a doctor's query with streaming response.
@@ -312,10 +313,22 @@ Provide your analysis in JSON format:
                 medical_history=medical_history
             )
 
+            # Extract JSON from response (handle markdown code blocks)
+            json_str = response.strip()
+
+            # Check if response is wrapped in markdown code blocks
+            if json_str.startswith('```'):
+                # Extract content between code blocks
+                match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', json_str, re.DOTALL)
+                if match:
+                    json_str = match.group(1).strip()
+
             # Try to parse as JSON
             try:
-                return json.loads(response)
-            except json.JSONDecodeError:
+                return json.loads(json_str)
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                print(f"Response text: {json_str[:200]}")
                 # If not valid JSON, return as text summary
                 return {
                     "summary": response,

@@ -75,7 +75,7 @@ export function DoctorPatientChatView({ patientId }: DoctorPatientChatViewProps)
 
       // Load medical history
       const historyData = await medicalHistoryService.getPatientMedicalHistory(patientId);
-      setMedicalHistory(historyData.medical_history || []);
+      setMedicalHistory(historyData.records || []);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load patient data');
