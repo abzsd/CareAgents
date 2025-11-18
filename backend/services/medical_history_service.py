@@ -185,11 +185,28 @@ class MedicalHistoryService:
         """
         offset = (page - 1) * page_size
 
-        # Get all active patients
+        # Get all patients with optional user info
         query = """
-            SELECT * FROM patients
-            WHERE is_active = true
-            ORDER BY created_at DESC
+            SELECT
+                p.patient_id,
+                p.user_id,
+                p.first_name,
+                p.last_name,
+                p.email,
+                p.phone,
+                p.date_of_birth,
+                p.age,
+                p.gender,
+                p.blood_type,
+                p.is_active,
+                p.created_at,
+                p.updated_at,
+                u.display_name,
+                u.photo_url
+            FROM patients p
+            LEFT JOIN users u ON p.user_id = u.user_id
+            WHERE p.is_active = true
+            ORDER BY p.created_at DESC
             LIMIT $1 OFFSET $2
         """
 

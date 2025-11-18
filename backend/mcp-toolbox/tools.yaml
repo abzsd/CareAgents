@@ -1,46 +1,195 @@
 sources:
-  my-cloud-sql-source:
-    kind: cloud-sql-postgres
-    project: braided-tracker-478502-b2
-    region: us-central1
-    instance: hoteldb-instance
-    database: postgres
+  healthcare-db-source:
+    kind: postgres
+    host: localhost
+    port: 5432
+    database: healthcare_db
     user: postgres
-    password: "postgres"
+    password: postgres
 
 tools:
-  search-hotels-by-name:
+  # Doctor-related tools
+  get-all-doctors:
     kind: postgres-sql
-    source: my-cloud-sql-source
-    description: Search for hotels based on name.
+    source: healthcare-db-source
+    description: Get a list of all active doctors with their details including specialization, rating, and availability.
+    parameters: []
+    statement: |
+      SELECT
+        doctor_id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        specialization,
+        sub_specializations,
+        years_of_experience,
+        consultation_fee,
+        rating,
+        total_patients_treated,
+        availability,
+        languages_spoken,
+        is_active,
+        created_at
+      FROM doctors
+      WHERE is_active = true
+      ORDER BY rating DESC, created_at DESC;
+
+  get-doctor-by-id:
+    kind: postgres-sql
+    source: healthcare-db-source
+    description: Get detailed information about a specific doctor by their doctor_id.
+    parameters:
+      - name: doctor_id
+        type: string
+        description: The unique identifier (UUID) of the doctor.
+    statement: |
+      SELECT
+        doctor_id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        specialization,
+        sub_specializations,
+        license_number,
+        license_state,
+        qualifications,
+        years_of_experience,
+        primary_organization_id,
+        organization_affiliations,
+        consultation_fee,
+        availability,
+        languages_spoken,
+        rating,
+        total_patients_treated,
+        is_active,
+        created_at,
+        updated_at
+      FROM doctors
+      WHERE doctor_id = $1;
+
+  search-doctors-by-specialization:
+    kind: postgres-sql
+    source: healthcare-db-source
+    description: Search for doctors by their specialization (e.g., Cardiology, Neurology, General Practice).
+    parameters:
+      - name: specialization
+        type: string
+        description: The medical specialization to search for.
+    statement: |
+      SELECT
+        doctor_id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        specialization,
+        sub_specializations,
+        years_of_experience,
+        consultation_fee,
+        rating,
+        total_patients_treated,
+        availability,
+        is_active
+      FROM doctors
+      WHERE specialization ILIKE '%' || $1 || '%'
+        AND is_active = true
+      ORDER BY rating DESC, years_of_experience DESC;
+
+  # Patient-related tools
+  get-all-patients:
+    kind: postgres-sql
+    source: healthcare-db-source
+    description: Get a list of all active patients with their basic information.
+    parameters: []
+    statement: |
+      SELECT
+        patient_id,
+        user_id,
+        first_name,
+        last_name,
+        date_of_birth,
+        gender,
+        email,
+        phone,
+        address,
+        emergency_contact_name,
+        emergency_contact_phone,
+        blood_group,
+        allergies,
+        chronic_conditions,
+        is_active,
+        created_at
+      FROM patients
+      WHERE is_active = true
+      ORDER BY created_at DESC;
+
+  get-patient-by-id:
+    kind: postgres-sql
+    source: healthcare-db-source
+    description: Get detailed information about a specific patient by their patient_id.
+    parameters:
+      - name: patient_id
+        type: string
+        description: The unique identifier (UUID) of the patient.
+    statement: |
+      SELECT
+        patient_id,
+        user_id,
+        first_name,
+        last_name,
+        date_of_birth,
+        gender,
+        email,
+        phone,
+        address,
+        emergency_contact_name,
+        emergency_contact_phone,
+        emergency_contact_relationship,
+        blood_group,
+        height,
+        weight,
+        allergies,
+        chronic_conditions,
+        current_medications,
+        insurance_provider,
+        insurance_policy_number,
+        is_active,
+        created_at,
+        updated_at
+      FROM patients
+      WHERE patient_id = $1;
+
+  search-patients-by-name:
+    kind: postgres-sql
+    source: healthcare-db-source
+    description: Search for patients by their first name or last name.
     parameters:
       - name: name
         type: string
-        description: The name of the hotel.
-    statement: SELECT * FROM hotels WHERE name ILIKE '%' || $1 || '%';
-  search-hotels-by-location:
-    kind: postgres-sql
-    source: my-cloud-sql-source
-    description: Search for hotels based on location.  Result is sorted by price from least to most expensive.
-    parameters:
-      - name: location
-        type: string
-        description: The location of the hotel.
+        description: The name (first or last) to search for.
     statement: |
-      SELECT *
-      FROM hotels
-      WHERE location ILIKE '%' || $1 || '%'
-      ORDER BY
-        CASE price_tier
-          WHEN 'Midscale' THEN 1
-          WHEN 'Upper Midscale' THEN 2
-          WHEN 'Upscale' THEN 3
-          WHEN 'Upper Upscale' THEN 4
-          WHEN 'Luxury' THEN 5
-          ELSE 99 -- Handle any unexpected values, place them at the end
-        END;
+      SELECT
+        patient_id,
+        user_id,
+        first_name,
+        last_name,
+        date_of_birth,
+        gender,
+        email,
+        phone,
+        is_active
+      FROM patients
+      WHERE (first_name ILIKE '%' || $1 || '%' OR last_name ILIKE '%' || $1 || '%')
+        AND is_active = true
+      ORDER BY first_name, last_name;
 
 toolsets:
-   my_first_toolset:
-     - search-hotels-by-name
-     - search-hotels-by-location
+  healthcare_toolset:
+    - get-all-doctors
+    - get-doctor-by-id
+    - search-doctors-by-specialization
+    - get-all-patients
+    - get-patient-by-id
+    - search-patients-by-name

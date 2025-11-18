@@ -42,12 +42,13 @@ class PatientService:
     def __init__(self, pool: asyncpg.Pool):
         self.repository = PatientRepository(pool)
 
-    async def create_patient(self, patient_data: PatientCreate) -> PatientResponse:
+    async def create_patient(self, patient_data: PatientCreate, user_id: Optional[str] = None) -> PatientResponse:
         """
         Create a new patient.
 
         Args:
             patient_data: Patient creation data
+            user_id: Optional user ID to link patient to a user account
 
         Returns:
             Created patient response
@@ -55,6 +56,10 @@ class PatientService:
         # Generate patient ID
         patient_dict = patient_data.model_dump(exclude_none=True)
         patient_dict['patient_id'] = str(uuid.uuid4())
+
+        # Link to user if provided
+        if user_id:
+            patient_dict['user_id'] = user_id
 
         # Calculate age from date of birth
         if patient_data.date_of_birth:
@@ -67,16 +72,25 @@ class PatientService:
 
         patient_dict['is_active'] = True
 
-        # Convert nested models to dicts for PostgreSQL
-        if 'date_of_birth' in patient_dict:
-            patient_dict['date_of_birth'] = patient_dict['date_of_birth'].isoformat()
+        # Convert date_of_birth - keep as date object for PostgreSQL
+        # asyncpg handles date objects directly, no need to convert to string
 
         # Convert enum values to strings
         if 'gender' in patient_dict:
             patient_dict['gender'] = patient_dict['gender'].value if hasattr(patient_dict['gender'], 'value') else patient_dict['gender']
-        
+
         if 'blood_type' in patient_dict:
             patient_dict['blood_type'] = patient_dict['blood_type'].value if hasattr(patient_dict['blood_type'], 'value') else patient_dict['blood_type']
+
+        # Convert nested Pydantic models to dicts
+        if 'address' in patient_dict and hasattr(patient_dict['address'], 'model_dump'):
+            patient_dict['address'] = patient_dict['address'].model_dump()
+
+        if 'emergency_contact' in patient_dict and hasattr(patient_dict['emergency_contact'], 'model_dump'):
+            patient_dict['emergency_contact'] = patient_dict['emergency_contact'].model_dump()
+
+        if 'insurance_info' in patient_dict and hasattr(patient_dict['insurance_info'], 'model_dump'):
+            patient_dict['insurance_info'] = patient_dict['insurance_info'].model_dump()
 
         # Insert into database
         created = await self.repository.insert(patient_dict)
@@ -95,6 +109,19 @@ class PatientService:
         """
         patient = await self.repository.find_by_id("patient_id", patient_id)
         return PatientResponse(**patient) if patient else None
+
+    async def get_patient_by_user_id(self, user_id: str) -> Optional[PatientResponse]:
+        """
+        Get patient by user ID.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            Patient response or None
+        """
+        results = await self.repository.find_by_filter({"user_id": user_id, "is_active": True}, limit=1)
+        return PatientResponse(**results[0]) if results else None
 
     async def update_patient(self, patient_id: str, patient_data: PatientUpdate) -> Optional[PatientResponse]:
         """
@@ -115,11 +142,9 @@ class PatientService:
         # Prepare update data
         update_dict = patient_data.model_dump(exclude_none=True)
 
-        # Convert date to string
+        # Recalculate age if date of birth is updated
+        # Keep date_of_birth as date object for PostgreSQL
         if 'date_of_birth' in update_dict:
-            update_dict['date_of_birth'] = update_dict['date_of_birth'].isoformat()
-
-            # Recalculate age
             dob = patient_data.date_of_birth
             today = date.today()
             age = today.year - dob.year
@@ -130,9 +155,19 @@ class PatientService:
         # Convert enum values to strings
         if 'gender' in update_dict:
             update_dict['gender'] = update_dict['gender'].value if hasattr(update_dict['gender'], 'value') else update_dict['gender']
-        
+
         if 'blood_type' in update_dict:
             update_dict['blood_type'] = update_dict['blood_type'].value if hasattr(update_dict['blood_type'], 'value') else update_dict['blood_type']
+
+        # Convert nested Pydantic models to dicts
+        if 'address' in update_dict and hasattr(update_dict['address'], 'model_dump'):
+            update_dict['address'] = update_dict['address'].model_dump()
+
+        if 'emergency_contact' in update_dict and hasattr(update_dict['emergency_contact'], 'model_dump'):
+            update_dict['emergency_contact'] = update_dict['emergency_contact'].model_dump()
+
+        if 'insurance_info' in update_dict and hasattr(update_dict['insurance_info'], 'model_dump'):
+            update_dict['insurance_info'] = update_dict['insurance_info'].model_dump()
 
         # Update in database
         await self.repository.update("patient_id", patient_id, update_dict)

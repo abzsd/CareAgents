@@ -7,7 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
 
-from routes import patients, users, chat, medical_history, files
+from routes import (
+    patients, users, chat, medical_history, files, appointments,
+    doctors, ai_appointments, voice_chat, prescription_parser, doctor_chat, onboarding
+)
 from database.postgresql.connection import get_postgresql_connection
 import dotenv
 dotenv.load_dotenv(".env")
@@ -70,9 +73,16 @@ app.add_middleware(
 # Include routers
 app.include_router(patients.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
+app.include_router(doctors.router, prefix="/api/v1")
+app.include_router(appointments.router, prefix="/api/v1")
+app.include_router(ai_appointments.router, prefix="/api/v1")
 app.include_router(medical_history.router, prefix="/api/v1")
 app.include_router(files.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api")
+app.include_router(voice_chat.router, prefix="/api/v1")
+app.include_router(prescription_parser.router, prefix="/api/v1")
+app.include_router(doctor_chat.router, prefix="/api/v1")
+app.include_router(onboarding.router, prefix="/api/v1")
 
 
 @app.get("/")

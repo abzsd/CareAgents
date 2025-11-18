@@ -136,6 +136,24 @@ CREATE TABLE IF NOT EXISTS medical_history (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Appointments table
+CREATE TABLE IF NOT EXISTS appointments (
+    appointment_id VARCHAR(36) PRIMARY KEY,
+    patient_id VARCHAR(36) REFERENCES patients(patient_id),
+    doctor_id VARCHAR(36) REFERENCES doctors(doctor_id),
+    appointment_date DATE NOT NULL,
+    appointment_time TIME NOT NULL,
+    appointment_type VARCHAR(50) NOT NULL DEFAULT 'consultation',
+    status VARCHAR(50) NOT NULL DEFAULT 'scheduled',
+    reason TEXT,
+    notes TEXT,
+    location VARCHAR(255),
+    duration_minutes INTEGER DEFAULT 30,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_firebase_uid ON users(firebase_uid);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -148,6 +166,9 @@ CREATE INDEX IF NOT EXISTS idx_medical_reports_patient_id ON medical_reports(pat
 CREATE INDEX IF NOT EXISTS idx_medical_reports_doctor_id ON medical_reports(doctor_id);
 CREATE INDEX IF NOT EXISTS idx_medical_history_patient_id ON medical_history(patient_id);
 CREATE INDEX IF NOT EXISTS idx_medical_history_doctor_id ON medical_history(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_patient_id ON appointments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_doctor_id ON appointments(doctor_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_date ON appointments(appointment_date);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -167,6 +188,7 @@ DROP TRIGGER IF EXISTS update_prescriptions_updated_at ON prescriptions;
 DROP TRIGGER IF EXISTS update_health_vitals_updated_at ON health_vitals;
 DROP TRIGGER IF EXISTS update_medical_reports_updated_at ON medical_reports;
 DROP TRIGGER IF EXISTS update_medical_history_updated_at ON medical_history;
+DROP TRIGGER IF EXISTS update_appointments_updated_at ON appointments;
 
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_patients_updated_at BEFORE UPDATE ON patients FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -176,3 +198,4 @@ CREATE TRIGGER update_prescriptions_updated_at BEFORE UPDATE ON prescriptions FO
 CREATE TRIGGER update_health_vitals_updated_at BEFORE UPDATE ON health_vitals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_medical_reports_updated_at BEFORE UPDATE ON medical_reports FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_medical_history_updated_at BEFORE UPDATE ON medical_history FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_appointments_updated_at BEFORE UPDATE ON appointments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

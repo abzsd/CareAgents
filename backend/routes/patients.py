@@ -45,6 +45,54 @@ async def create_patient(
         )
 
 
+@router.post("/user/{user_id}", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
+async def create_patient_for_user(
+    user_id: str,
+    patient: PatientCreate,
+    service: PatientService = Depends(get_patient_service)
+):
+    """
+    Create a patient record for a user.
+
+    Args:
+        user_id: User ID
+        patient: Patient data
+
+    Returns:
+        Created patient
+    """
+    try:
+        return await service.create_patient(patient, user_id=user_id)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create patient: {str(e)}"
+        )
+
+
+@router.get("/user/{user_id}", response_model=PatientResponse)
+async def get_patient_by_user_id(
+    user_id: str,
+    service: PatientService = Depends(get_patient_service)
+):
+    """
+    Get a patient by user ID.
+
+    Args:
+        user_id: User ID
+
+    Returns:
+        Patient data
+    """
+    patient = await service.get_patient_by_user_id(user_id)
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient with user ID {user_id} not found"
+        )
+    return patient
+
+
 @router.get("/{patient_id}", response_model=PatientResponse)
 async def get_patient(
     patient_id: str,

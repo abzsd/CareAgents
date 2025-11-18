@@ -2,7 +2,8 @@
 CareAgents - AI Agents for Healthcare Management System
 """
 
-from .chat_agent import ChatAgent
-from .record_agent import RecordAgent
+from .prescription_parser_agent import PrescriptionParserAgent
+from .patient_embedding_agent import PatientEmbeddingAgent
+from .doctor_chat_agent import DoctorChatAgent
 
-__all__ = ["ChatAgent", "RecordAgent"]
+__all__ = ["PrescriptionParserAgent", "PatientEmbeddingAgent", "DoctorChatAgent"]

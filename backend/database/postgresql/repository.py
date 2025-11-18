@@ -39,7 +39,19 @@ class BaseRepository(ABC):
         """
         async with self.pool.acquire() as connection:
             rows = await connection.fetch(query, *args)
-            return [dict(row) for row in rows]
+            result = []
+            for row in rows:
+                row_dict = dict(row)
+                # Parse JSON string fields back to Python objects
+                for key, value in row_dict.items():
+                    if isinstance(value, str) and (value.startswith('[') or value.startswith('{')):
+                        try:
+                            row_dict[key] = json.loads(value)
+                        except (json.JSONDecodeError, ValueError):
+                            # If it's not valid JSON, keep as string
+                            pass
+                result.append(row_dict)
+            return result
 
     async def _execute_command(self, query: str, *args) -> str:
         """
@@ -87,7 +99,17 @@ class BaseRepository(ABC):
 
         async with self.pool.acquire() as connection:
             row = await connection.fetchrow(query, *values)
-            return dict(row) if row else data
+            if row:
+                row_dict = dict(row)
+                # Parse JSON string fields back to Python objects
+                for key, value in row_dict.items():
+                    if isinstance(value, str) and (value.startswith('[') or value.startswith('{')):
+                        try:
+                            row_dict[key] = json.loads(value)
+                        except (json.JSONDecodeError, ValueError):
+                            pass
+                return row_dict
+            return data
 
     async def insert_many(self, records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
@@ -126,10 +148,18 @@ class BaseRepository(ABC):
                     for i, value in enumerate(values):
                         if isinstance(value, (dict, list)):
                             values[i] = json.dumps(value)
-                    
+
                     row = await connection.fetchrow(query, *values)
                     if row:
-                        results.append(dict(row))
+                        row_dict = dict(row)
+                        # Parse JSON string fields back to Python objects
+                        for key, value in row_dict.items():
+                            if isinstance(value, str) and (value.startswith('[') or value.startswith('{')):
+                                try:
+                                    row_dict[key] = json.loads(value)
+                                except (json.JSONDecodeError, ValueError):
+                                    pass
+                        results.append(row_dict)
 
         return results
 
@@ -145,10 +175,20 @@ class BaseRepository(ABC):
             Record dictionary or None if not found
         """
         query = f"SELECT * FROM {self.table_name} WHERE {id_field} = $1 LIMIT 1"
-        
+
         async with self.pool.acquire() as connection:
             row = await connection.fetchrow(query, id_value)
-            return dict(row) if row else None
+            if row:
+                row_dict = dict(row)
+                # Parse JSON string fields back to Python objects
+                for key, value in row_dict.items():
+                    if isinstance(value, str) and (value.startswith('[') or value.startswith('{')):
+                        try:
+                            row_dict[key] = json.loads(value)
+                        except (json.JSONDecodeError, ValueError):
+                            pass
+                return row_dict
+            return None
 
     async def find_all(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """

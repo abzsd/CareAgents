@@ -1,21 +1,40 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Calendar, Clock, User, Stethoscope, MessageCircle, FileText, Activity } from "lucide-react";
 import { PatientMedicalHistory } from "./PatientMedicalHistory";
+import { SmartAppointmentBooking } from "./SmartAppointmentBooking";
+import { patientService } from "../services/patientService";
 
 export function EnhancedPatientDashboard() {
   const { user, userProfile } = useAuth();
   const [showChat, setShowChat] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
+  const [patientId, setPatientId] = useState<string | null>(null);
 
-  if (!user || !userProfile) {
+  useEffect(() => {
+    // Fetch patient data to get patient_id
+    const loadPatientData = async () => {
+      if (userProfile?.user_id) {
+        try {
+          const patient = await patientService.getPatientByUserId(userProfile.user_id);
+          setPatientId(patient.patient_id || '');
+        } catch (err) {
+          console.error('Failed to load patient data:', err);
+          // Fallback to user_id if patient record doesn't exist yet
+          setPatientId(userProfile.user_id);
+        }
+      }
+    };
+
+    loadPatientData();
+  }, [userProfile]);
+
+  if (!user || !userProfile || !patientId) {
     return null;
   }
-
-  // Get patient_id from userProfile (assuming it's stored there during onboarding)
-  const patientId = userProfile.user_id; // Adjust this based on your data structure
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -128,11 +147,19 @@ export function EnhancedPatientDashboard() {
                     <FileText className="mr-2 h-4 w-4" />
                     View Medical History
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setShowBooking(true)}
+                  >
                     <Calendar className="mr-2 h-4 w-4" />
                     Schedule Appointment
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setShowBooking(true)}
+                  >
                     <Stethoscope className="mr-2 h-4 w-4" />
                     Find a Doctor
                   </Button>
@@ -221,6 +248,37 @@ export function EnhancedPatientDashboard() {
                   <p>Start a conversation with your medical assistant</p>
                   <p className="text-sm mt-2">Ask questions about your health, appointments, or medications</p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Smart Appointment Booking Modal */}
+      {showBooking && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowBooking(false)}></div>
+            <div className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
+                <h2 className="text-xl font-semibold">Book an Appointment</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowBooking(false)}
+                >
+                  Close
+                </Button>
+              </div>
+              <div className="p-6">
+                <SmartAppointmentBooking
+                  patientId={patientId}
+                  onSuccess={() => {
+                    setShowBooking(false);
+                    // Optionally refresh appointments list
+                  }}
+                  onCancel={() => setShowBooking(false)}
+                />
               </div>
             </div>
           </div>

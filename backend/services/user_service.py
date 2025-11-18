@@ -121,3 +121,11 @@ class UserService:
     async def set_user_onboarded(self, user_id: str) -> Optional[UserResponse]:
         """Mark user as onboarded"""
         return await self.update_user(user_id, UserUpdate(is_onboarded=True))
+
+    async def mark_as_onboarded(self, user_id: str) -> Optional[UserResponse]:
+        """Mark user as onboarded (alias for set_user_onboarded)"""
+        return await self.set_user_onboarded(user_id)
+
+    async def get_user(self, user_id: str) -> Optional[UserResponse]:
+        """Get user by ID (alias for get_user_by_id)"""
+        return await self.get_user_by_id(user_id)

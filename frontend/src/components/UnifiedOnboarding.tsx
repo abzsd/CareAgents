@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../services/api';
+import { patientService } from '../services/patientService';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -352,10 +353,35 @@ export const UnifiedOnboarding: React.FC = () => {
           throw new Error('User profile not found');
         }
 
+        // Validate required fields
+        if (!formData.gender) {
+          throw new Error('Please select your gender');
+        }
+
+        if (!formData.dateOfBirth) {
+          throw new Error('Please enter your date of birth');
+        }
+
+        // Create patient record with all collected data
+        await patientService.createPatientForUser(userProfile.user_id, {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          date_of_birth: formData.dateOfBirth,
+          gender: formData.gender,
+          email: user?.email || '',
+          phone: formData.phone,
+          blood_type: formData.bloodType || undefined,
+          allergies: formData.allergies ? formData.allergies.split(',').map(a => a.trim()).filter(a => a) : [],
+          chronic_conditions: formData.chronicConditions ? formData.chronicConditions.split(',').map(c => c.trim()).filter(c => c) : [],
+        });
+
         // Update user role to patient and mark as onboarded
         const updatedUser = await userApi.updateUser(userProfile.user_id, {
           role: 'patient',
           is_onboarded: true,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone: formData.phone,
           display_name: `${formData.firstName} ${formData.lastName}`
         });
 
@@ -436,16 +462,17 @@ export const UnifiedOnboarding: React.FC = () => {
                 <Label htmlFor="gender">Gender</Label>
                 <Select 
                   value={formData.gender} 
+                  style="bg-white"
                   onValueChange={(value) => handleSelectChange('gender', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                    <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

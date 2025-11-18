@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Calendar, Clock, User, Stethoscope, MessageCircle } from "lucide-react";
+import { Calendar, Clock, User, Stethoscope, MessageCircle, Mic } from "lucide-react";
 import { ChatWidget } from "./ChatWidget";
+import { VoiceChat } from "./VoiceChat";
 
 export function PatientAppointmentDashboard() {
   const { user, userProfile } = useAuth();
   const [showChat, setShowChat] = useState(false);
+  const [showVoiceChat, setShowVoiceChat] = useState(false);
 
   // Mock appointment data
   const upcomingAppointments = [
@@ -212,14 +214,30 @@ export function PatientAppointmentDashboard() {
         </div>
       </div>
 
-      {/* Chat Button - Fixed at bottom center */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2">
+      {/* Chat and Voice Buttons - Fixed at bottom center */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-4">
         <Button
-          onClick={() => setShowChat(!showChat)}
+          onClick={() => {
+            setShowChat(!showChat);
+            setShowVoiceChat(false);
+          }}
           className="h-14 w-14 rounded-full shadow-lg bg-blue-600 hover:bg-blue-700 flex items-center justify-center"
           size="icon"
+          title="Text Chat"
         >
           <MessageCircle className="w-6 h-6" />
+        </Button>
+
+        <Button
+          onClick={() => {
+            setShowVoiceChat(!showVoiceChat);
+            setShowChat(false);
+          }}
+          className="h-14 w-14 rounded-full shadow-lg bg-green-600 hover:bg-green-700 flex items-center justify-center"
+          size="icon"
+          title="Voice Chat"
+        >
+          <Mic className="w-6 h-6" />
         </Button>
       </div>
 
@@ -240,7 +258,7 @@ export function PatientAppointmentDashboard() {
                 Close
               </Button>
             </div>
-            
+
             {/* Chat Content - Blank except sidebar */}
             <div className="h-full flex">
               {/* Sidebar */}
@@ -261,7 +279,7 @@ export function PatientAppointmentDashboard() {
                   </Button>
                 </div>
               </div>
-              
+
               {/* Main Chat Area - Blank */}
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center text-slate-500">
@@ -270,6 +288,35 @@ export function PatientAppointmentDashboard() {
                   <p className="text-sm mt-2">Ask questions about your health, appointments, or medications</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Chat Widget */}
+      {showVoiceChat && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowVoiceChat(false)}></div>
+          <div className="absolute bottom-0 left-0 right-0 h-3/4 bg-white rounded-t-2xl shadow-2xl">
+            {/* Voice Chat Header */}
+            <div className="bg-green-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Mic className="w-5 h-5" />
+                <h3 className="font-medium">Voice Medical Assistant</h3>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowVoiceChat(false)}
+                className="text-white hover:bg-green-700"
+              >
+                Close
+              </Button>
+            </div>
+
+            {/* Voice Chat Content */}
+            <div className="h-full overflow-y-auto">
+              <VoiceChat onClose={() => setShowVoiceChat(false)} />
             </div>
           </div>
         </div>
