@@ -51,9 +51,23 @@ class DoctorBase(BaseModel):
     languages_spoken: Optional[List[str]] = ["English"]
 
 
-class DoctorCreate(DoctorBase):
-    """Model for creating a new doctor"""
-    pass
+class DoctorCreate(BaseModel):
+    """Model for creating a new doctor - email is optional for onboarding"""
+    first_name: str = Field(..., min_length=1, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, max_length=20)
+    specialization: str = Field(..., description="e.g., Cardiology, Neurology, General Practice")
+    sub_specializations: Optional[List[str]] = []
+    license_number: str
+    license_state: str
+    qualifications: Optional[List[Qualification]] = []
+    years_of_experience: Optional[int] = Field(None, ge=0)
+    primary_organization_id: Optional[str] = None
+    organization_affiliations: Optional[List[OrganizationAffiliation]] = []
+    consultation_fee: Optional[float] = Field(None, ge=0)
+    availability: Optional[List[DoctorAvailability]] = []
+    languages_spoken: Optional[List[str]] = ["English"]
 
 
 class DoctorUpdate(BaseModel):

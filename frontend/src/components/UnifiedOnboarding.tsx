@@ -142,6 +142,11 @@ export const UnifiedOnboarding: React.FC = () => {
             year: q.year ? parseInt(q.year) : undefined
           }));
 
+        // Validate license state
+        if (!formData.licenseState) {
+          throw new Error('Please enter your license state/country');
+        }
+
         // Create doctor record via onboarding API
         const onboardingResult = await onboardingApi.onboardDoctor({
           user_id: userProfile.user_id,
@@ -149,6 +154,7 @@ export const UnifiedOnboarding: React.FC = () => {
           last_name: formData.lastName,
           specialization: formData.specialization,
           license_number: formData.licenseNumber,
+          license_state: formData.licenseState,
           phone: formData.phone || undefined,
           email: user?.email || undefined,
           experience_years: formData.yearsOfExperience ? parseInt(formData.yearsOfExperience) : undefined,
@@ -235,14 +241,14 @@ export const UnifiedOnboarding: React.FC = () => {
 
             <div className="space-y-2">
               <Label htmlFor="specialization">Medical Specialization</Label>
-              <Select 
-                value={formData.specialization} 
+              <Select
+                value={formData.specialization}
                 onValueChange={handleSelectChange}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue placeholder="Select specialization" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="cardiology">Cardiology</SelectItem>
                   <SelectItem value="neurology">Neurology</SelectItem>
                   <SelectItem value="oncology">Oncology</SelectItem>
@@ -489,15 +495,14 @@ export const UnifiedOnboarding: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="gender">Gender</Label>
-                <Select 
-                  value={formData.gender} 
-                  style="bg-white"
-                  onValueChange={(value) => handleSelectChange('gender', value)}
+                <Select
+                  value={formData.gender}
+                  onValueChange={(value: string) => handleSelectChange('gender', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Select gender" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     <SelectItem value="Male">Male</SelectItem>
                     <SelectItem value="Female">Female</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
@@ -547,14 +552,14 @@ export const UnifiedOnboarding: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="bloodType">Blood Type</Label>
-                <Select 
-                  value={formData.bloodType} 
-                  onValueChange={(value) => handleSelectChange('bloodType', value)}
+                <Select
+                  value={formData.bloodType}
+                  onValueChange={(value: string) => handleSelectChange('bloodType', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white">
                     <SelectValue placeholder="Select blood type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     <SelectItem value="A+">A+</SelectItem>
                     <SelectItem value="A-">A-</SelectItem>
                     <SelectItem value="B+">B+</SelectItem>

@@ -25,7 +25,7 @@ ENV/
 *~
 
 # Environment files
-.env
+!.env
 .env.local
 .env.*.local
 
@@ -36,6 +36,9 @@ ENV/
 # Documentation
 *.md
 !README.md
+
+# Important: Don't ignore Dockerfile
+!Dockerfile
 
 # Logs
 *.log

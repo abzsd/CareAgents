@@ -29,6 +29,5 @@ QUICKSTART.md
 tests/
 test_*.py
 
-# Docker
-Dockerfile
-.dockerignore
+# Note: Dockerfile and .dockerignore are needed for Cloud Build
+# Do NOT exclude them!

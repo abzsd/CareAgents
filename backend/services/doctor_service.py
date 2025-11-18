@@ -21,12 +21,13 @@ class DoctorService:
         """
         self.repository = BaseRepository(pool, "doctors")
 
-    async def create_doctor(self, doctor_data: DoctorCreate) -> DoctorResponse:
+    async def create_doctor(self, doctor_data: DoctorCreate, user_id: Optional[str] = None) -> DoctorResponse:
         """
         Create a new doctor.
 
         Args:
             doctor_data: Doctor data
+            user_id: Optional user ID to link the doctor to a user account
 
         Returns:
             Created doctor record
@@ -40,6 +41,10 @@ class DoctorService:
         data['is_active'] = True
         data['rating'] = 0.0
         data['total_patients_treated'] = 0
+
+        # Add user_id if provided
+        if user_id:
+            data['user_id'] = user_id
 
         # Insert the record
         result = await self.repository.insert(data)

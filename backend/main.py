@@ -2,7 +2,7 @@
 FastAPI Main Application
 Healthcare Management System with PostgreSQL Backend
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
@@ -59,6 +59,21 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Add middleware to trust proxy headers (for Cloud Run)
+@app.middleware("http")
+async def add_proxy_headers(request: Request, call_next):
+    """
+    Middleware to handle X-Forwarded-Proto header from reverse proxy.
+    This ensures HTTPS redirects work correctly when behind Google Cloud Run.
+    """
+    # Trust the X-Forwarded-Proto header from the proxy
+    forwarded_proto = request.headers.get("X-Forwarded-Proto")
+    if forwarded_proto:
+        request.scope["scheme"] = forwarded_proto
+
+    response = await call_next(request)
+    return response
 
 # Configure CORS
 app.add_middleware(

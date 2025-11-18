@@ -22,7 +22,7 @@ class AdkAgentOrchestrator:
 
     def __init__(
         self,
-        google_api_key: str, # Changed from anthropic_api_key
+        google_api_key: str,
         postgres_config: PostgresConfig,
         redis_url: str = "redis://localhost:6379",
         streaming_service: Optional[StreamingService] = None
@@ -268,7 +268,7 @@ _orchestrator: Optional[AdkAgentOrchestrator] = None
 
 
 def init_orchestrator(
-    google_api_key: str, # Changed from anthropic_api_key
+    google_api_key: str, 
     postgres_config: PostgresConfig,
     redis_url: str = "redis://localhost:6379",
     streaming_service: Optional[StreamingService] = None

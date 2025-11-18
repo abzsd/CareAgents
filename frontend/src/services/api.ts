@@ -1,6 +1,8 @@
 import { auth } from '../firebase/config';
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+// Base URL without /api/v1 suffix
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = `${BASE_URL}/api/v1`;
 
 // Get Firebase ID token for authenticated requests
 const getIdToken = async (): Promise<string | null> => {
@@ -196,7 +198,7 @@ export const patientApi = {
 export const guestChatApi = {
   // Send a guest chat message
   sendMessage: async (message: string, history: Array<{ role: string; content: string }>) => {
-    const url = 'http://localhost:8000/api/chat/guest';
+    const url = `${BASE_URL}/api/chat/guest`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -218,7 +220,7 @@ export const guestChatApi = {
 
   // Check guest chat health
   checkHealth: async () => {
-    const url = 'http://localhost:8000/api/chat/health';
+    const url = `${BASE_URL}/api/chat/health`;
 
     const response = await fetch(url);
 

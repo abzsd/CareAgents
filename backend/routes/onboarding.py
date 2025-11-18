@@ -54,6 +54,7 @@ class DoctorOnboardingRequest(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=100)
     specialization: str
     license_number: str
+    license_state: str
     phone: Optional[str] = None
     email: Optional[str] = None
     experience_years: Optional[int] = None

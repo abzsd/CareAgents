@@ -104,6 +104,7 @@ class OnboardingService:
         last_name: str,
         specialization: str,
         license_number: str,
+        license_state: str,
         phone: Optional[str] = None,
         email: Optional[str] = None,
         experience_years: Optional[int] = None,
@@ -118,6 +119,7 @@ class OnboardingService:
             last_name: Doctor's last name
             specialization: Medical specialization
             license_number: Medical license number
+            license_state: State where the medical license was issued
             phone: Phone number
             email: Email address
             experience_years: Years of experience
@@ -132,6 +134,7 @@ class OnboardingService:
             last_name=last_name,
             specialization=specialization,
             license_number=license_number,
+            license_state=license_state,
             phone=phone,
             email=email,
             experience_years=experience_years,

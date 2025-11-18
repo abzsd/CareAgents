@@ -112,7 +112,7 @@ general:
     chat_agent: 0.7
     record_agent: 0.1
 
-  model: "claude-3-5-sonnet-20241022"
+  model: "gemini-2.5-pro"
 
   error_handling:
     max_retries: 3

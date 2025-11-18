@@ -30,7 +30,10 @@ export function VoiceChat({ onClose }: VoiceChatProps) {
 
   const connectWebSocket = () => {
     try {
-      const ws = new WebSocket("ws://localhost:8000/api/v1/ws/voice-chat");
+      // Get WebSocket URL from environment variable
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const wsUrl = baseUrl.replace(/^https?/, 'ws');
+      const ws = new WebSocket(`${wsUrl}/api/v1/ws/voice-chat`);
       wsRef.current = ws;
 
       ws.onopen = () => {
