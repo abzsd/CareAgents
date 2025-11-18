@@ -76,7 +76,7 @@ async def get_patient_data(
 
     return {
         "patient_data": patient.model_dump(),
-        "medical_history": history_result["medical_history"]
+        "medical_history": history_result["records"]
     }
 
 

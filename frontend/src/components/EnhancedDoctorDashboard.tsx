@@ -6,8 +6,9 @@ import { Calendar, Users, Stethoscope, Clock, Activity } from 'lucide-react';
 import { DoctorPatientList } from './DoctorPatientList';
 import { PatientDetailView } from './PatientDetailView';
 import { AddMedicalRecordForm } from './AddMedicalRecordForm';
+import { DoctorPatientChatView } from './DoctorPatientChatView';
 
-type ViewMode = 'dashboard' | 'patients' | 'patient-detail' | 'add-record';
+type ViewMode = 'dashboard' | 'patients' | 'patient-detail' | 'add-record' | 'patient-chat';
 
 export const EnhancedDoctorDashboard = () => {
   const { user, userProfile } = useAuth();
@@ -36,9 +37,17 @@ export const EnhancedDoctorDashboard = () => {
     setViewMode('add-record');
   };
 
+  const handleOpenChat = () => {
+    setViewMode('patient-chat');
+  };
+
   const handleBackToPatients = () => {
     setViewMode('patients');
     setSelectedPatient(null);
+  };
+
+  const handleBackToPatientDetail = () => {
+    setViewMode('patient-detail');
   };
 
   const handleRecordSuccess = () => {
@@ -81,7 +90,7 @@ export const EnhancedDoctorDashboard = () => {
             <button
               onClick={() => setViewMode('patients')}
               className={`pb-3 px-4 font-medium transition-colors ${
-                viewMode === 'patients' || viewMode === 'patient-detail' || viewMode === 'add-record'
+                viewMode === 'patients' || viewMode === 'patient-detail' || viewMode === 'add-record' || viewMode === 'patient-chat'
                   ? 'border-b-2 border-blue-500 text-blue-600'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
@@ -134,20 +143,6 @@ export const EnhancedDoctorDashboard = () => {
                       <p className="text-sm text-slate-500">Access patient records and history</p>
                     </div>
                   </button>
-                  <button className="w-full flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 transition-colors text-left">
-                    <Calendar className="h-5 w-5 text-green-600" />
-                    <div>
-                      <p className="font-medium">Schedule Appointment</p>
-                      <p className="text-sm text-slate-500">Book a new patient appointment</p>
-                    </div>
-                  </button>
-                  <button className="w-full flex items-center gap-3 p-3 border rounded-lg hover:bg-slate-50 transition-colors text-left">
-                    <Stethoscope className="h-5 w-5 text-purple-600" />
-                    <div>
-                      <p className="font-medium">Create Prescription</p>
-                      <p className="text-sm text-slate-500">Write a new prescription</p>
-                    </div>
-                  </button>
                 </CardContent>
               </Card>
 
@@ -176,7 +171,33 @@ export const EnhancedDoctorDashboard = () => {
             patient={selectedPatient}
             onBack={handleBackToPatients}
             onAddRecord={handleAddRecord}
+            onOpenChat={handleOpenChat}
           />
+        )}
+
+        {viewMode === 'patient-chat' && selectedPatient && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">
+                AI Chat - {selectedPatient.first_name} {selectedPatient.last_name}
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleBackToPatientDetail}
+                  className="px-4 py-2 text-sm border rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Back to Patient Details
+                </button>
+                <button
+                  onClick={handleBackToPatients}
+                  className="px-4 py-2 text-sm border rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  Back to Patients
+                </button>
+              </div>
+            </div>
+            <DoctorPatientChatView patientId={selectedPatient.patient_id} />
+          </div>
         )}
 
         {viewMode === 'add-record' && selectedPatient && (

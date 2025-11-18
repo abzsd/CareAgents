@@ -14,7 +14,8 @@ import {
   ArrowLeft,
   Plus,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from "lucide-react";
 import { medicalHistoryService, type MedicalHistory } from "../services/medicalHistoryService";
 
@@ -22,9 +23,10 @@ interface PatientDetailViewProps {
   patient: any;
   onBack: () => void;
   onAddRecord: () => void;
+  onOpenChat?: () => void;
 }
 
-export function PatientDetailView({ patient, onBack, onAddRecord }: PatientDetailViewProps) {
+export function PatientDetailView({ patient, onBack, onAddRecord, onOpenChat }: PatientDetailViewProps) {
   const [medicalHistory, setMedicalHistory] = useState<MedicalHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,10 +57,18 @@ export function PatientDetailView({ patient, onBack, onAddRecord }: PatientDetai
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Patients
         </Button>
-        <Button onClick={onAddRecord}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Medical Record
-        </Button>
+        <div className="flex gap-2">
+          {onOpenChat && (
+            <Button onClick={onOpenChat} variant="outline" className="bg-blue-50 border-blue-200 hover:bg-blue-100">
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Chat with AI
+            </Button>
+          )}
+          <Button onClick={onAddRecord}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Medical Record
+          </Button>
+        </div>
       </div>
 
       {/* Patient Information */}

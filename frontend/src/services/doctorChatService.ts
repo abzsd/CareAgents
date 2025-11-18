@@ -15,7 +15,7 @@ export interface ChatResponse {
   patient_id: string;
 }
 
-export interface Summary Response {
+export interface SummaryResponse {
   summary: string;
   summary_type: string;
   patient_id: string;

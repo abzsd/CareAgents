@@ -9,7 +9,7 @@ import os
 
 from routes import (
     patients, users, chat, medical_history, files, appointments,
-    doctors, ai_appointments, voice_chat, prescription_parser, doctor_chat, onboarding
+    doctors, ai_appointments, voice_chat, prescription_parser, doctor_chat, onboarding, admin
 )
 from database.postgresql.connection import get_postgresql_connection
 import dotenv
@@ -83,6 +83,7 @@ app.include_router(voice_chat.router, prefix="/api/v1")
 app.include_router(prescription_parser.router, prefix="/api/v1")
 app.include_router(doctor_chat.router, prefix="/api/v1")
 app.include_router(onboarding.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
 
 
 @app.get("/")
